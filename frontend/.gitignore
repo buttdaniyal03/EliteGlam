@@ -1,0 +1,18 @@
+# Node.js
+node_modules/
+*.log
+
+# Environment files
+.env
+
+# Build directories
+dist/
+build/
+
+# IDE Configs
+.vscode/
+*.code-workspace
+
+# Other temporary files
+.DS_Store
+.cache/
