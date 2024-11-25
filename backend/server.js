@@ -30,12 +30,12 @@ mongoose
 // User schema
 const userSchema = new mongoose.Schema({
   // Personal Information
-  firstName: { type: String },
-  lastName: { type: String },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
   age: { type: Number },
   gender: { type: String, enum: ["Male", "Female", "Other"] },
-  email: { type: String, unique: true },
-  phone: { type: String },
+  email: { type: String, unique: true, required: true },
+  phone: { type: String, required: true },
   location: { type: String },
   profilePicture: { type: String }, // URL or file path
 
@@ -47,11 +47,11 @@ const userSchema = new mongoose.Schema({
   contactPerson: String,
 
   // Security
-  password: { type: String },
+  password: { type: String, required: true },
 
   // Other
   isBusiness: { type: Boolean, default: false }, // To differentiate between customers and businesses
-  termsAccepted: { type: Boolean },
+  termsAccepted: { type: Boolean, required: true },
 });
 
 const User = mongoose.model("User", userSchema);
@@ -110,20 +110,22 @@ app.post("/api/role", async (req, res) => {
   const { name } = req.body;
 
   if (!name) {
-    return res.status(400).json({ message: "Name field is required" });
+    return res.status(400).json({ message: "Role name is required" });
   }
 
-  const newRole = new Role({ name });
-
   try {
-    await newRole.save();
-    res.status(201).json({ message: "Role registered successfully" });
-  } catch (error) {
-    console.error("Error registering role:", error);
-    if (error.code === 11000) {
+    const existingRole = await Role.findOne({ name });
+    if (existingRole) {
       return res.status(400).json({ message: "Role already exists" });
     }
-    res.status(500).json({ message: "Error registering role", error });
+
+    const newRole = new Role({ name });
+    await newRole.save();
+
+    res.status(201).json({ message: "Role created successfully" });
+  } catch (error) {
+    console.error("Error creating role:", error);
+    res.status(500).json({ message: "Error creating role", error });
   }
 });
 
@@ -149,29 +151,24 @@ app.get("/api/users", async (req, res) => {
 });
 
 // Login endpoint (With Firebase authentication)
-// Login endpoint (With Firebase authentication)
 app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email } = req.body;
 
   try {
     // Verify Firebase ID token first
-    const decodedToken = await admin
-      .auth()
-      .verifyIdToken(req.headers.authorization.split("Bearer ")[1]);
+    const idToken = req.headers.authorization?.split("Bearer ")[1];
+    if (!idToken) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
 
     // Check if the user exists in MongoDB
     const user = await User.findOne({ email });
-
     if (!user) {
       return res
         .status(404)
         .json({ message: "User not found in the database" });
-    }
-
-    // Compare the password stored in MongoDB with the one provided
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     res.status(200).json({ message: "Login successful", user });

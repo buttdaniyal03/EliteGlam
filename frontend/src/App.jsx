@@ -43,6 +43,8 @@ const App = () => {
         {/* User Dashboard */}
         <Route path="/dashboard" element={<CustomerDashboard />} />
         <Route path="/userprofile" element={<UserProfile />} />
+        {/* 
+        <Route path="/reset-password" element={<ResetPassword />} /> */}
 
         {/* Future Extensions */}
         {/* Uncomment or add routes as needed */}

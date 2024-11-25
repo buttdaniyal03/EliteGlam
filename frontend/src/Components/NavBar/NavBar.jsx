@@ -93,7 +93,7 @@ const NavBar = () => {
         )}
 
         {/* Show profile-related options when logged in and email is verified */}
-        {user && (
+        {user && isEmailVerified && (
           <div className="navBar-pic-container group relative">
             <img
               className="navBar-pic"

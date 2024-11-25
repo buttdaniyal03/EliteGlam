@@ -1,30 +1,3 @@
-// import { getAuth } from "firebase/auth";
-// import React from "react";
-
-// const UserProfile = () => {
-//   const auth = getAuth();
-//   const user = auth.currentUser;
-
-//   if (!user) {
-//     return <p>Please log in to view your profile.</p>; // Show if user is not logged in
-//   }
-
-//   return (
-//     <div className="userProfile">
-//       <h1>Your Profile</h1>
-//       <img
-//         src={user.photoURL || "default_profile_picture_url"} // Use Firebase photoURL if available
-//         alt="Profile"
-//         className="w-36 h-36 rounded-full object-cover"
-//       />
-//       <h2>{user.displayName || "User"}</h2> {/* Display user's name */}
-//       <p>Email: {user.email}</p>
-//     </div>
-//   );
-// };
-
-// export default UserProfile;
-
 import { getAuth, sendEmailVerification } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -136,12 +109,12 @@ const UserProfile = () => {
       <p>Email: {user.email}</p>
       {/* Email Verification Status */}
       {!emailVerified && (
-        <p className="text-yellow-500">
+        <p className="text-red-500">
           Your email is not verified. Please check your inbox to verify your
           email.
           <button
             onClick={resendVerificationEmail}
-            className="ml-2 text-blue-500 underline"
+            className="ml-2 text-red-500 underline"
           >
             Resend Verification Email
           </button>
@@ -160,7 +133,7 @@ const UserProfile = () => {
             />
             <button
               onClick={handleSaveClick}
-              className="mt-2 p-2 bg-blue-500 text-white rounded"
+              className="mt-2 p-2 bg-red-500 text-white rounded"
             >
               Save
             </button>
@@ -171,7 +144,7 @@ const UserProfile = () => {
         {!isEditing && (
           <button
             onClick={handleEditClick}
-            className="mt-2 p-2 bg-yellow-500 text-white rounded"
+            className="mt-2 p-2 bg-red-500 text-white rounded"
           >
             Edit
           </button>
@@ -185,3 +158,30 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
+
+// import { getAuth } from "firebase/auth";
+// import React from "react";
+
+// const UserProfile = () => {
+//   const auth = getAuth();
+//   const user = auth.currentUser;
+
+//   if (!user) {
+//     return <p>Please log in to view your profile.</p>; // Show if user is not logged in
+//   }
+
+//   return (
+//     <div className="userProfile">
+//       <h1>Your Profile</h1>
+//       <img
+//         src={user.photoURL || "default_profile_picture_url"} // Use Firebase photoURL if available
+//         alt="Profile"
+//         className="w-36 h-36 rounded-full object-cover"
+//       />
+//       <h2>{user.displayName || "User"}</h2> {/* Display user's name */}
+//       <p>Email: {user.email}</p>
+//     </div>
+//   );
+// };
+
+// export default UserProfile;
