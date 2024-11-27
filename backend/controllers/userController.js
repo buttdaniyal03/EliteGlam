@@ -1,34 +1,31 @@
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { sendPasswordResetEmail } = require("../utils/emailService"); // Assuming this utility function exists
 
 // Controller for registering a new user
 const registerUser = async (req, res) => {
   const { name, email, password, role } = req.body;
 
-  // Validate required fields
   if (!name || !email || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    // Check if the user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email is already in use" });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new user instance
     const user = new User({
       name,
       email,
       password: hashedPassword,
-      role: role || "customer", // Default role is 'customer'
+      role: role || "customer",
     });
 
-    // Save the user to the database
     await user.save();
 
     res.status(201).json({
@@ -50,26 +47,32 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
-  // Validate required fields
   if (!email || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    // Find the user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Compare the entered password with the stored hashed password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+
     res.status(200).json({
       message: "Login successful",
+      token,
       user: {
         id: user._id,
         name: user.name,
@@ -86,7 +89,6 @@ const loginUser = async (req, res) => {
 // Controller for getting all users
 const getUsers = async (req, res) => {
   try {
-    // Fetch users excluding their passwords
     const users = await User.find().select("-password");
     res.status(200).json(users);
   } catch (error) {
@@ -100,7 +102,6 @@ const updateUser = async (req, res) => {
   const { userId } = req.params;
   const updates = req.body;
 
-  // Prevent password updates through this route
   if (updates.password) {
     return res
       .status(400)
@@ -108,11 +109,10 @@ const updateUser = async (req, res) => {
   }
 
   try {
-    // Update the user in the database
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
-      new: true, // Return the updated document
-      runValidators: true, // Validate updated fields
-    }).select("-password"); // Exclude password from the response
+      new: true,
+      runValidators: true,
+    }).select("-password");
 
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
@@ -146,10 +146,123 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// Controller for resetting a password
+const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  if (!email || !newPassword) {
+    return res
+      .status(400)
+      .json({ message: "Email and new password are required" });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Controller for verifying user email
+const verifyEmail = async (req, res) => {
+  const { token } = req.query;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.isVerified = true;
+    await user.save();
+
+    res.status(200).json({ message: "Email verified successfully" });
+  } catch (error) {
+    console.error("Error verifying email:", error);
+    res.status(400).json({ message: "Invalid or expired token" });
+  }
+};
+
+// Controller for refreshing a token
+const refreshToken = async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(400).json({ message: "Refresh token is required" });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const newToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    res.status(200).json({ token: newToken });
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    res.status(401).json({ message: "Invalid or expired refresh token" });
+  }
+};
+
+// Controller for sending a password reset email
+const sendResetEmail = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+
+    await sendPasswordResetEmail(user.email, resetUrl);
+
+    res.status(200).json({ message: "Password reset email sent" });
+  } catch (error) {
+    console.error("Error sending reset email:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getUsers,
   updateUser,
   deleteUser,
+  resetPassword,
+  verifyEmail,
+  refreshToken,
+  sendResetEmail,
 };
