@@ -455,16 +455,21 @@ const RegistrationPage = () => {
                 </p>
               )}
             </div>
-            <select
-              value={businessType}
-              onChange={(e) => setBusinessType(e.target.value)}
-              required
-              className="form-select"
-            >
-              <option value="Salon">Salon</option>
-              <option value="Clinic">Clinic</option>
-            </select>
+            <div>
+              <label className="block text-gray-700 font-medium">
+                Business Type
+              </label>
 
+              <select
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                required
+                className="form-select"
+              >
+                <option value="Salon">Salon</option>
+                <option value="Clinic">Clinic</option>
+              </select>
+            </div>
             <div>
               <label className="block text-gray-700 font-medium">
                 Business Name
