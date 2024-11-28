@@ -2,6 +2,7 @@ const Clinic = require("../../models/Clinic");
 const bcrypt = require("bcrypt");
 const { generateAuthToken } = require("../../utils/tokenService");
 
+// Register a Clinic
 const registerClinic = async (req, res) => {
   const {
     name,
@@ -15,13 +16,16 @@ const registerClinic = async (req, res) => {
   } = req.body;
 
   try {
+    // Check for existing clinic
     const existingClinic = await Clinic.findOne({ email });
     if (existingClinic) {
       return res.status(400).json({ message: "Email is already registered" });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create and save clinic
     const clinic = new Clinic({
       name,
       email,
@@ -35,9 +39,13 @@ const registerClinic = async (req, res) => {
 
     await clinic.save();
 
+    // Generate token
+    const token = generateAuthToken(clinic);
+
     res.status(201).json({
       message: "Clinic registered successfully",
       clinic: { id: clinic._id, name: clinic.name, email: clinic.email },
+      token,
     });
   } catch (err) {
     console.error("Error registering clinic:", err);
@@ -45,6 +53,7 @@ const registerClinic = async (req, res) => {
   }
 };
 
+// Fetch all Clinics
 const getClinics = async (req, res) => {
   try {
     const clinics = await Clinic.find().select("-password");
