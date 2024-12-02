@@ -1,142 +1,133 @@
-const Role = require("../models/Role");
-const User = require("../models/User");
+const Service = require("../models/Service");
 
-// Add a new role
-const addRole = async (req, res) => {
-  const { name, permissions } = req.body;
+// Add a new service
+const addService = async (req, res) => {
+  const { name, category, priceRange, description } = req.body;
 
-  if (!name) {
-    return res.status(400).json({ message: "Role name is required" });
+  if (!name || !category || !priceRange) {
+    return res.status(400).json({ message: "Required fields are missing" });
   }
 
   try {
-    const existingRole = await Role.findOne({ name });
-    if (existingRole) {
-      return res.status(400).json({ message: "Role already exists" });
+    const existingService = await Service.findOne({ name });
+    if (existingService) {
+      return res.status(400).json({ message: "Service already exists" });
     }
 
-    const role = new Role({
+    const service = new Service({
       name,
-      permissions, // Optional: Array of permissions
+      category,
+      priceRange,
+      description,
     });
 
-    await role.save();
+    await service.save();
 
-    res.status(201).json({ message: "Role added successfully", role });
+    res.status(201).json({ message: "Service added successfully", service });
   } catch (error) {
-    console.error("Error adding role:", error);
+    console.error("Error adding service:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-// Get all roles
-const getRoles = async (req, res) => {
+// Get all services
+const getServices = async (req, res) => {
   try {
-    const roles = await Role.find();
-    res.status(200).json(roles);
+    const services = await Service.find();
+    res.status(200).json(services);
   } catch (error) {
-    console.error("Error fetching roles:", error);
-    res.status(500).json({ message: "Failed to fetch roles" });
+    console.error("Error fetching services:", error);
+    res.status(500).json({ message: "Failed to fetch services" });
   }
 };
 
-// Get a specific role by ID
-const getRoleById = async (req, res) => {
+// Get a service by ID
+const getServiceById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const role = await Role.findById(id);
+    const service = await Service.findById(id);
 
-    if (!role) {
-      return res.status(404).json({ message: "Role not found" });
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
     }
 
-    res.status(200).json(role);
+    res.status(200).json(service);
   } catch (error) {
-    console.error("Error fetching role:", error);
+    console.error("Error fetching service:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-// Assign a role to a user
-const assignRoleToUser = async (req, res) => {
-  const { userId, roleId } = req.body;
-
-  if (!userId || !roleId) {
-    return res
-      .status(400)
-      .json({ message: "User ID and Role ID are required" });
-  }
-
-  try {
-    const user = await User.findById(userId);
-    const role = await Role.findById(roleId);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (!role) {
-      return res.status(404).json({ message: "Role not found" });
-    }
-
-    user.role = roleId; // Assuming the User model has a `role` field
-    await user.save();
-
-    res.status(200).json({ message: "Role assigned to user successfully" });
-  } catch (error) {
-    console.error("Error assigning role to user:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-// Update a role
-const updateRole = async (req, res) => {
+// Update a service
+const updateService = async (req, res) => {
   const { id } = req.params;
-  const { name, permissions } = req.body;
+  const { name, category, priceRange, description } = req.body;
 
   try {
-    const role = await Role.findById(id);
+    const service = await Service.findById(id);
 
-    if (!role) {
-      return res.status(404).json({ message: "Role not found" });
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
     }
 
-    if (name) role.name = name;
-    if (permissions) role.permissions = permissions;
+    if (name) service.name = name;
+    if (category) service.category = category;
+    if (priceRange) service.priceRange = priceRange;
+    if (description) service.description = description;
 
-    await role.save();
+    await service.save();
 
-    res.status(200).json({ message: "Role updated successfully", role });
+    res.status(200).json({ message: "Service updated successfully", service });
   } catch (error) {
-    console.error("Error updating role:", error);
+    console.error("Error updating service:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-// Delete a role
-const deleteRole = async (req, res) => {
+// Delete a service
+const deleteService = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const role = await Role.findByIdAndDelete(id);
+    const service = await Service.findByIdAndDelete(id);
 
-    if (!role) {
-      return res.status(404).json({ message: "Role not found" });
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
     }
 
-    res.status(200).json({ message: "Role deleted successfully" });
+    res.status(200).json({ message: "Service deleted successfully" });
   } catch (error) {
-    console.error("Error deleting role:", error);
+    console.error("Error deleting service:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Get services by category
+const getServicesByCategory = async (req, res) => {
+  const { category } = req.params;
+
+  try {
+    const services = await Service.find({ category });
+
+    if (services.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No services found in this category" });
+    }
+
+    res.status(200).json(services);
+  } catch (error) {
+    console.error("Error fetching services by category:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 module.exports = {
-  addRole,
-  getRoles,
-  getRoleById,
-  assignRoleToUser,
-  updateRole,
-  deleteRole,
+  addService,
+  getServices,
+  getServiceById,
+  updateService,
+  deleteService,
+  getServicesByCategory,
 };

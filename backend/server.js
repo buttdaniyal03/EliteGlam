@@ -11,6 +11,45 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
+const userRoutes = require("./routes/userRoutes");
+const authRoutes = require("./routes/authRoutes");
+const salonRoutes = require("./routes/business/salonRoutes");
+const clinicRoutes = require("./routes/business/clinicRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
+const appointmentRoutes = require("./routes/appointmentRoutes");
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Initialize Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(require("./serviceAccountKey.json")),
+});
+
+// Connect to MongoDB
+mongoose
+  .connect("mongodb://localhost:27017/glam")
+  .then(() => {
+    console.log("MongoDB connected successfully");
+  })
+  .catch((error) => {
+    console.error("MongoDB connection error:", error);
+  });
+
+// Use Routes
+app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/salons", salonRoutes);
+app.use("/api/clinics", clinicRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/appointments", appointmentRoutes);
+
+// Basic route for testing
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
+
 // Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(require("./serviceAccountKey.json")),
